@@ -1,7 +1,8 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Home, Info, Layout, Zap, Package, ArrowRight } from 'lucide-react'
-import { cn } from './lib/utils'
+
+
 
 // Simple Home Component
 const HomePage = () => (
