@@ -9,7 +9,7 @@ import { ExerciseMetricsPanel } from '../components/features/exercise/ExerciseMe
 import { ExerciseFeedbackBar } from '../components/features/exercise/ExerciseFeedbackBar';
 import { usePoseAnalysis } from '../hooks/usePoseAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
-import { cn } from '../lib/utils';
+
 
 /* ── Instruction overlay ─────────────────────────── */
 const InstructionOverlay = ({ info, onClose }) => (
@@ -101,14 +101,12 @@ export const Exercise = () => {
 
   const [reps] = useState(8);
   const [seconds, setSeconds] = useState(0);
-  const [accuracy, setAccuracy] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
-  const [feedback, setFeedback] = useState('Initializing...');
-  const [progress, setProgress] = useState(0);
   const [keypoints, setKeypoints] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  const { feedback: poseFeedback, accuracy: poseAccuracy, activeArm } = usePoseAnalysis(keypoints);
+  const { feedback, accuracy, activeArm } = usePoseAnalysis(keypoints);
+  const progress = accuracy;
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -124,11 +122,7 @@ export const Exercise = () => {
     };
   }, [exercise.title, settings.aiVoice]);
 
-  useEffect(() => {
-    setFeedback(poseFeedback);
-    setAccuracy(poseAccuracy);
-    setProgress(poseAccuracy);
-  }, [poseFeedback, poseAccuracy]);
+
 
   useEffect(() => {
     if (!isRunning) return;

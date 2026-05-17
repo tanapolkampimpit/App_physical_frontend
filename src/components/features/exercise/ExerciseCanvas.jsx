@@ -108,6 +108,7 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
 
   // Initialize detector and camera
   useEffect(() => {
+    let videoElem = null;
     const initialize = async () => {
       try {
         setDetectionStatus('Loading model...');
@@ -137,7 +138,8 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
         });
 
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoElem = videoRef.current;
+          videoElem.srcObject = stream;
           setCameraReady(true);
           onCameraReady?.(true);
         }
@@ -152,8 +154,8 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
     initialize();
 
     return () => {
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      if (videoElem?.srcObject) {
+        videoElem.srcObject.getTracks().forEach((track) => track.stop());
       }
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       if (drawAnimRef.current) cancelAnimationFrame(drawAnimRef.current);

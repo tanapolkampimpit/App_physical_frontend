@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 
 const calculateAngle = (a, b, c) => {
   if (!a || !b || !c) return 0;
@@ -15,20 +15,14 @@ const avgArmScore = (keypoints, indices) =>
   indices.reduce((sum, i) => sum + (keypoints[i]?.score || 0), 0) / indices.length;
 
 export const usePoseAnalysis = (keypoints) => {
-  const [feedback, setFeedback] = useState('Initializing...');
-  const [accuracy, setAccuracy] = useState(0);
-  const [activeArm, setActiveArm] = useState('none');
-
-  useEffect(() => {
+  return useMemo(() => {
     if (!keypoints || keypoints.length < 17) {
-      setFeedback('Initializing...');
-      setActiveArm('none');
-      return;
+      return { feedback: 'Initializing...', accuracy: 0, activeArm: 'none' };
     }
 
     const avgScore =
       keypoints.reduce((sum, kp) => sum + (kp.score || 0), 0) / keypoints.length;
-    setAccuracy(Math.round(avgScore * 100));
+    const accuracy = Math.round(avgScore * 100);
 
     // MoveNet COCO: 5=left_shoulder 6=right_shoulder 7=left_elbow 8=right_elbow 9=left_wrist 10=right_wrist
     const leftShoulder = keypoints[5];
@@ -45,32 +39,33 @@ export const usePoseAnalysis = (keypoints) => {
     const leftActive = leftScore >= THRESHOLD;
     const rightActive = rightScore >= THRESHOLD;
 
-    if (leftActive && rightActive) setActiveArm('both');
-    else if (leftActive) setActiveArm('left');
-    else if (rightActive) setActiveArm('right');
-    else setActiveArm('none');
+    let activeArm = 'none';
+    if (leftActive && rightActive) activeArm = 'both';
+    else if (leftActive) activeArm = 'left';
+    else if (rightActive) activeArm = 'right';
+
+    let feedback;
 
     if (!leftActive && !rightActive) {
-      setFeedback('Move into frame...');
-      return;
-    }
-
-    const leftArmRaised = leftWrist?.y < leftShoulder?.y - 0.1;
-    const rightArmRaised = rightWrist?.y < rightShoulder?.y - 0.1;
-
-    const leftElbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
-    const rightElbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-
-    if (leftElbowAngle > 120 && rightElbowAngle > 120) {
-      setFeedback('Perfect arm extension!');
-    } else if (leftArmRaised && rightArmRaised) {
-      setFeedback('Great form! Keep it up!');
-    } else if (leftArmRaised || rightArmRaised) {
-      setFeedback('Raise both arms higher!');
+      feedback = 'Move into frame...';
     } else {
-      setFeedback('Raise your arms!');
-    }
-  }, [keypoints]);
+      const leftArmRaised = leftWrist?.y < leftShoulder?.y - 0.1;
+      const rightArmRaised = rightWrist?.y < rightShoulder?.y - 0.1;
 
-  return { feedback, accuracy, activeArm };
+      const leftElbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
+      const rightElbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
+
+      if (leftElbowAngle > 120 && rightElbowAngle > 120) {
+        feedback = 'Perfect arm extension!';
+      } else if (leftArmRaised && rightArmRaised) {
+        feedback = 'Great form! Keep it up!';
+      } else if (leftArmRaised || rightArmRaised) {
+        feedback = 'Raise both arms higher!';
+      } else {
+        feedback = 'Raise your arms!';
+      }
+    }
+
+    return { feedback, accuracy, activeArm };
+  }, [keypoints]);
 };
