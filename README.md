@@ -1,75 +1,82 @@
 # App Kayapat 🚀
 
-A modern React web application built with **Vite**, **Tailwind CSS v4**, and essential tools for a premium development experience.
+A premium React web application for physical therapy guidance, built with clinical excellence and modern aesthetics in mind.
 
 ## 🛠 Tech Stack
 
 - **Framework:** [React 19](https://react.dev/)
 - **Build Tool:** [Vite](https://vitejs.dev/)
 - **Styling:** [Tailwind CSS v4](https://tailwindcss.com/)
-- **Icons:** [Lucide React](https://lucide.dev/)
 - **Animations:** [Framer Motion](https://www.framer.com/motion/)
+- **Icons:** [Lucide React](https://lucide.dev/) & Material Symbols
 - **Routing:** [React Router 7](https://reactrouter.com/)
-- **HTTP Client:** [Axios](https://axios-http.com/)
 - **Containerization:** [Docker](https://www.docker.com/)
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+- **Node.js** (v20+)
+- **NPM** (v10+)
 
-- [Node.js](https://nodejs.org/) (v20 or higher)
-- [Docker](https://www.docker.com/) (Optional, for containerized development)
-
-### Local Development
-
+### Local Setup
 1. **Install dependencies:**
    ```bash
    npm install
    ```
-
-2. **Run the development server:**
+2. **Start development server:**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+   Open [http://localhost:3000](http://localhost:3000)
 
-### Docker Development (Recommended for Teams)
+### Docker Setup
+- **Development:** `docker-compose up dev`
+- **Production:** `docker-compose up app`
 
-If you don't want to install Node.js locally or want to ensure environment consistency:
+---
 
-- **Start development server (with Hot Reload):**
-  ```bash
-  docker-compose up dev
-  ```
-  Access via [http://localhost:3000](http://localhost:3000).
+## 🌿 Git Workflow (Branch Protection)
 
-- **Build and Run Production version (Nginx):**
-  ```bash
-  docker-compose up app
-  ```
-  Access via [http://localhost:8080](http://localhost:8080).
+The `master` branch is protected to ensure code quality. Follow these steps to contribute:
+
+1. **Create a Feature Branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+2. **Commit & Push:**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing feature"
+   git push origin feature/your-feature-name
+   ```
+3. **Open a Pull Request:**
+   Go to GitHub and create a PR from your branch to `master`.
+
+---
+
+## 🔔 CI/CD & Notifications
+
+We use **GitHub Actions** for automated testing and builds.
+
+### Discord Notifications
+To receive CI failure alerts in Discord:
+1. Create a Webhook in your Discord channel.
+2. Add the URL to GitHub Secrets as `DISCORD_WEBHOOK`.
+
+---
 
 ## 📁 Project Structure
 
 ```text
 src/
-├── assets/         # Images, fonts, and static assets
-├── components/     # Reusable UI components
-├── lib/            # Utilities and helper functions (e.g., cn utility)
-├── pages/          # Page components (routed via React Router)
-├── App.jsx         # Main application component & routes
-├── index.css       # Global styles and Tailwind imports
-└── main.jsx        # Entry point
-```
-
-## 📝 Utility Functions
-
-We've included a `cn` utility in `src/lib/utils.js` for merging Tailwind classes easily:
-
-```javascript
-import { cn } from './lib/utils';
-
-<div className={cn("base-class", condition && "active-class", customClass)}>...</div>
+├── assets/         # Static assets
+├── components/     # UI Components
+├── lib/            # Utilities (e.g., cn helper)
+├── pages/          # Routed pages
+├── App.jsx         # App Entry & Routes
+└── main.jsx        # React Mounting
 ```
 
 ---

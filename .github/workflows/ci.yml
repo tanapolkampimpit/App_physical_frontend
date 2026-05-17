@@ -1,0 +1,50 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ master, main, dev, frontend ]
+  pull_request:
+    branches: [ master, main, dev, frontend ]
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      - name: Notify Discord on Failure
+        if: failure()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+               -d "{\"username\": \"GitHub CI\", \"content\": \"❌ **CI Build Failed!**\n**Repo:** ${{ github.repository }}\n**Branch:** \`${{ github.ref_name }}\`\n**Action Logs:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+               $DISCORD_WEBHOOK
+
+      - name: Notify Discord on Success
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+               -d "{\"username\": \"GitHub CI\", \"content\": \"✅ **CI Build Passed Successfully!**\n**Repo:** ${{ github.repository }}\n**Branch:** \`${{ github.ref_name }}\`\n**Action Logs:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+               $DISCORD_WEBHOOK
