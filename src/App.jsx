@@ -3,8 +3,10 @@ import { Layout } from './components/layout/Layout';
 import { Welcome } from './pages/Welcome';
 import { Profile } from './pages/Profile';
 import { Programs } from './pages/Programs';
+import { CaregiverPrograms } from './pages/CaregiverPrograms';
 import { ExercisePreview } from './pages/ExercisePreview';
 import { Exercise } from './pages/Exercise';
+import { CaregiverExercise } from './pages/CaregiverExercise';
 import { Report } from './pages/Report';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
@@ -40,6 +42,14 @@ export const App = () => {
           }
         />
         <Route
+          path="/caregiver-programs"
+          element={
+            <Layout showNav={true}>
+              <CaregiverPrograms />
+            </Layout>
+          }
+        />
+        <Route
           path="/settings"
           element={
             <Layout showNav={false}>
@@ -60,6 +70,14 @@ export const App = () => {
           element={
             <Layout showNav={false}>
               <Exercise />
+            </Layout>
+          }
+        />
+        <Route
+          path="/caregiver-exercise/:id"
+          element={
+            <Layout showNav={false}>
+              <CaregiverExercise />
             </Layout>
           }
         />

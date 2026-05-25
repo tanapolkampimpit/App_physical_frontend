@@ -59,6 +59,9 @@ export const Profile = () => {
     weight: '',
     height: '',
     condition: '',
+    painScale: 0,
+    limitations: '',
+    usageMode: 'self',
     emergencyContactName: '',
     emergencyPhone: '',
   });
@@ -170,6 +173,36 @@ export const Profile = () => {
                   <option value="shoulder-injury">บาดเจ็บไหล่</option>
                 </SelectField>
               </Field>
+              <Field label="ระดับความปวด (0-10)">
+                <div className="flex items-center gap-3 w-full">
+                  <input
+                    type="range"
+                    name="painScale"
+                    min="0"
+                    max="10"
+                    value={formData.painScale}
+                    onChange={handleChange}
+                    className="flex-1 accent-emerald-500"
+                  />
+                  <span className="w-8 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                    {formData.painScale}
+                  </span>
+                </div>
+              </Field>
+              <Field label="ข้อจำกัดทางร่างกาย / ประวัติการผ่าตัด">
+                <Input
+                  name="limitations"
+                  value={formData.limitations}
+                  onChange={handleChange}
+                  placeholder="เช่น ผ่าตัดเปลี่ยนข้อเข่า, ปวดไหล่ขวา"
+                />
+              </Field>
+              <Field label="รูปแบบการใช้งานแอป">
+                <SelectField name="usageMode" value={formData.usageMode} onChange={handleChange}>
+                  <option value="self">ออกกำลังกายด้วยตนเอง</option>
+                  <option value="caregiver">โหมดผู้ดูแล (สอนผู้อื่น)</option>
+                </SelectField>
+              </Field>
             </SectionCard>
 
             <SectionCard icon={Phone} title="ผู้ติดต่อฉุกเฉิน" delay={0.2}>
@@ -235,7 +268,7 @@ export const Profile = () => {
       </div>
 
       {/* Mobile fixed save button */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 p-4 transition-colors">
+      <div className="lg:hidden fixed bottom-[72px] left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 p-4 transition-colors z-50">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleSave}

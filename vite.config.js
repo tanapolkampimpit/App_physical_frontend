@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@mediapipe/pose': fileURLToPath(new URL('./src/lib/mediapipe-stub.js', import.meta.url)),
+      '@mediapipe/selfie_segmentation': fileURLToPath(new URL('./src/lib/selfie-segmentation-stub.js', import.meta.url)),
     },
   },
   server: {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, ShieldCheck, Brain, TrendingUp, ArrowRight, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Activity, ShieldCheck, Brain, TrendingUp, ArrowRight, X, User, Users, Check } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { cn } from '../lib/utils';
 
 const FEATURES = [
   { icon: Brain, label: 'AI วิเคราะห์ท่าทาง real-time', desc: 'ตรวจจับการเคลื่อนไหวด้วย MoveNet', color: 'text-purple-600 bg-purple-50' },
@@ -11,6 +12,7 @@ const FEATURES = [
 
 export const Welcome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [modalContent, setModalContent] = useState(null); // 'terms' | 'privacy' | null
 
   const TERMS_CONTENT = (
@@ -31,8 +33,36 @@ export const Welcome = () => {
     </div>
   );
 
+  const [isStarting, setIsStarting] = useState(false);
+  const [selectedMode, setSelectedMode] = useState('self');
+
+  const handleStart = async (mode) => {
+    setIsStarting(true);
+    try {
+      const res = await fetch('http://localhost:8000/profile');
+      const profile = await res.json();
+      
+      const updatedProfile = { ...profile, usage_mode: mode };
+      await fetch('http://localhost:8000/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedProfile)
+      });
+    } catch (error) {
+      console.error('Failed to set mode', error);
+    }
+    if (mode === 'caregiver') {
+      navigate('/caregiver-programs');
+    } else {
+      navigate('/programs');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center p-4 lg:p-8 relative">
+    <div className={cn(
+      "min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center p-4 lg:p-8 relative",
+      location.pathname === '/welcome' ? 'pb-40' : 'pb-28'
+    )}>
       <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center z-10">
 
         {/* Left — Branding */}
@@ -85,17 +115,17 @@ export const Welcome = () => {
           </div>
         </motion.div>
 
-        {/* Right — Login card */}
+        {/* Right — Start card */}
         <motion.div
           initial={{ opacity: 0, x: 24 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center w-full animate-in"
         >
-          <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl shadow-gray-200/60 border border-gray-100 p-8 space-y-6">
+          <div className="w-full max-w-xl bg-white rounded-[32px] shadow-xl shadow-gray-200/50 border border-gray-100 p-8 space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900">เริ่มต้นใช้งาน</h2>
-              <p className="text-sm text-gray-500 mt-1">เชื่อมต่อด้วย LINE เพื่อเข้าใช้งาน</p>
+              <p className="text-sm text-gray-500 mt-1">กรุณาเลือกรูปแบบการออกกำลังกายที่เหมาะสมกับคุณ</p>
             </div>
 
             {/* Features — visible on mobile */}
@@ -116,28 +146,92 @@ export const Welcome = () => {
               ))}
             </div>
 
-            <div className="space-y-3">
+            {/* Mode Selection Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Option 1: Self Exercise */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedMode('self')}
+                className={cn(
+                  'relative rounded-2xl p-5 border-2 cursor-pointer transition-all duration-300 flex flex-col items-center text-center gap-3 select-none',
+                  selectedMode === 'self'
+                    ? 'border-emerald-500 bg-emerald-50/40 shadow-lg shadow-emerald-100/50'
+                    : 'border-gray-100 hover:border-emerald-300 bg-white shadow-sm'
+                )}
+              >
+                {selectedMode === 'self' && (
+                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+                    <Check size={12} className="text-white" strokeWidth={3} />
+                  </div>
+                )}
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300',
+                  selectedMode === 'self' ? 'bg-emerald-500 text-white shadow-md' : 'bg-gray-50 text-gray-500'
+                )}>
+                  <User size={22} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-base text-gray-800">ออกกำลังกายเอง</h3>
+                  <p className="text-xs text-gray-400 leading-normal">
+                    ฝึกตามท่าทางด้วยตนเอง โดยมี AI คอยวิเคราะห์มุมข้อต่อแบบสดๆ
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* Option 2: Caregiver Mode */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedMode('caregiver')}
+                className={cn(
+                  'relative rounded-2xl p-5 border-2 cursor-pointer transition-all duration-300 flex flex-col items-center text-center gap-3 select-none',
+                  selectedMode === 'caregiver'
+                    ? 'border-amber-500 bg-amber-50/40 shadow-lg shadow-amber-100/50'
+                    : 'border-gray-100 hover:border-amber-300 bg-white shadow-sm'
+                )}
+              >
+                {selectedMode === 'caregiver' && (
+                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
+                    <Check size={12} className="text-white" strokeWidth={3} />
+                  </div>
+                )}
+                <div className={cn(
+                  'w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-300',
+                  selectedMode === 'caregiver' ? 'bg-amber-500 text-white shadow-md' : 'bg-gray-50 text-gray-500'
+                )}>
+                  <Users size={22} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-base text-gray-800">โหมดผู้ดูแล (อัมพาตครึ่งซีก)</h3>
+                  <p className="text-xs text-gray-400 leading-normal">
+                    สำหรับผู้ช่วยพยุงผู้ป่วยอัมพาตครึ่งซีก โดย AI จะช่วยเฝ้าระวังและแจ้งเตือนมุมอันตราย
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Bottom CTA Button — visible on desktop */}
+            <div className="hidden lg:block pt-2">
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate('/programs')}
-                className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-4 rounded-2xl shadow-lg shadow-green-200 transition-all duration-200 flex items-center justify-center gap-2 text-base"
+                whileTap={{ scale: 0.98 }}
+                disabled={isStarting}
+                onClick={() => handleStart(selectedMode)}
+                className={cn(
+                  'w-full text-white font-bold py-4 rounded-2xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-base disabled:opacity-50 cursor-pointer',
+                  selectedMode === 'caregiver'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-200 hover:shadow-amber-300'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 shadow-emerald-200 hover:shadow-emerald-300'
+                )}
               >
-                <span className="text-xl font-black leading-none">L</span>
-                <span>เข้าสู่ระบบด้วย LINE</span>
+                <span>{selectedMode === 'caregiver' ? 'เข้าสู่โหมดผู้ดูแล (อัมพาตครึ่งซีก)' : 'เริ่มต้นออกกำลังกาย'}</span>
                 <ArrowRight size={18} />
               </motion.button>
-
-              <button
-                onClick={() => navigate('/programs')}
-                className="w-full text-gray-500 hover:text-gray-800 text-sm py-2 transition-colors"
-              >
-                ข้ามไปหน้าหลัก
-              </button>
             </div>
 
             <p className="text-xs text-gray-400 text-center">
-              การเข้าสู่ระบบถือว่ายอมรับ
+              การเข้าใช้งานถือว่ายอมรับ
               <span 
                 onClick={() => setModalContent('terms')}
                 className="text-emerald-600 ml-1 cursor-pointer hover:underline"
@@ -202,6 +296,28 @@ export const Welcome = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* Mobile fixed bottom bar with glowing CTA button */}
+      <div className={cn(
+        'lg:hidden fixed left-0 right-0 p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-gray-800 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.04)] transition-all duration-300',
+        location.pathname === '/welcome' ? 'bottom-[72px]' : 'bottom-0'
+      )}>
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          disabled={isStarting}
+          onClick={() => handleStart(selectedMode)}
+          className={cn(
+            'w-full text-white font-bold py-4 rounded-[20px] flex items-center justify-center gap-2 shadow-lg transition-all duration-300 disabled:opacity-50',
+            selectedMode === 'caregiver'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-600 shadow-amber-200'
+              : 'bg-gradient-to-r from-emerald-500 to-teal-600 shadow-emerald-200'
+          )}
+        >
+          <span className="text-base tracking-wide">
+            {selectedMode === 'caregiver' ? 'เข้าสู่โหมดผู้ดูแล (อัมพาตครึ่งซีก)' : 'เริ่มต้นออกกำลังกาย'}
+          </span>
+          <ArrowRight size={18} />
+        </motion.button>
+      </div>
     </div>
   );
 };

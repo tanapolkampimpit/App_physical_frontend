@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Confetti from 'react-confetti';
 import { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { speakThai } from '../utils/speak';
 
 const STATS = [
   { icon: Clock, label: 'ระยะเวลา', value: '12:34', color: 'text-blue-600 bg-blue-50 border-blue-100' },
@@ -16,6 +17,8 @@ export const Report = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const [windowDimension, setWindowDimension] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [painScale, setPainScale] = useState(0);
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setWindowDimension({ width: window.innerWidth, height: window.innerHeight });
@@ -27,20 +30,23 @@ export const Report = () => {
     }
 
     // AI Voice Gamification
-    if (settings.aiVoice && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const msg = new SpeechSynthesisUtterance("Great job! You have successfully completed the exercise. Your range of motion has improved.");
-      msg.lang = 'en-US';
-      msg.volume = 1;
-      msg.rate = 1.0;
-      window.speechSynthesis.speak(msg);
+    if (settings.aiVoice) {
+      speakThai("ทำได้ดีมาก! คุณทำกายภาพเสร็จสมบูรณ์แล้ว ช่วงการเคลื่อนไหวของคุณดีขึ้น");
     }
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.speechSynthesis.cancel();
     };
   }, [settings.aiVoice]);
+
+  const handleSaveAndExit = async () => {
+    // Save to cloud (mock API call)
+    // await fetch('/api/sessions', { method: 'POST', body: JSON.stringify({ painScale, stats: STATS }) });
+    setIsSaved(true);
+    setTimeout(() => {
+      navigate('/history');
+    }, 1000);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex flex-col items-center justify-center px-4 py-8 lg:py-16 overflow-hidden">
@@ -115,6 +121,31 @@ export const Report = () => {
             </p>
           </motion.div>
 
+          {/* Post-Session Pain Scale */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+            className="mb-6"
+          >
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 text-center">ระดับความเจ็บปวดหลังทำกายภาพ (0-10)</h3>
+            <div className="flex items-center gap-3 w-full bg-white px-4 py-3 rounded-2xl border border-gray-100 shadow-sm">
+              <span className="text-xs text-gray-400">0</span>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                value={painScale}
+                onChange={(e) => setPainScale(parseInt(e.target.value))}
+                className="flex-1 accent-emerald-500"
+              />
+              <span className="text-xs text-gray-400">10</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100 ml-2">
+                <span className="font-bold text-emerald-600">{painScale}</span>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -143,10 +174,11 @@ export const Report = () => {
             </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
-              onClick={() => navigate('/programs')}
-              className="w-full text-center text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors cursor-pointer"
+              onClick={handleSaveAndExit}
+              disabled={isSaved}
+              className={`w-full text-center py-3 rounded-xl transition-colors font-semibold ${isSaved ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} cursor-pointer mt-2`}
             >
-              กลับหน้าโปรแกรม
+              {isSaved ? 'บันทึกข้อมูลเรียบร้อยแล้ว' : 'บันทึกข้อมูลและกลับหน้าหลัก'}
             </motion.button>
           </motion.div>
         </motion.div>

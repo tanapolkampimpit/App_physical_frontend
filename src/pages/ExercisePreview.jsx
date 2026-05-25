@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, Repeat, ChevronRight, TriangleAlert, Shield, Activity, Star } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { mockPrograms, exerciseInstructions } from '../components/features/exercise/exerciseData';
 
 // Import images to showcase on the preview screen
@@ -87,6 +88,16 @@ export const ExercisePreview = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const numId = parseInt(id);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:8000/profile')
+      .then((res) => res.json())
+      .then((data) => setProfile(data))
+      .catch((err) => console.error('Failed to fetch profile', err));
+  }, []);
+
+  const targetRoute = profile?.usage_mode === 'caregiver' ? `/caregiver-exercise/${id}` : `/exercise/${id}`;
 
   const program = mockPrograms.find((p) => p.id === numId);
   const info = exerciseInstructions[numId];
@@ -275,10 +286,12 @@ export const ExercisePreview = () => {
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate(`/exercise/${id}`)}
+                onClick={() => navigate(targetRoute)}
                 className={`w-full bg-gradient-to-r ${theme.gradient} text-white font-bold py-4 rounded-[20px] flex items-center justify-center gap-2 shadow-lg ${theme.btnShadow} transition-all duration-300 cursor-pointer`}
               >
-                <span className="text-base tracking-wide">เริ่มออกกำลังกาย</span>
+                <span className="text-base tracking-wide">
+                  {profile?.usage_mode === 'caregiver' ? 'เริ่มออกกำลังกาย (โหมดผู้ดูแล)' : 'เริ่มออกกำลังกาย'}
+                </span>
                 <ChevronRight size={18} />
               </motion.button>
             </motion.div>
@@ -291,10 +304,12 @@ export const ExercisePreview = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => navigate(`/exercise/${id}`)}
+          onClick={() => navigate(targetRoute)}
           className={`w-full bg-gradient-to-r ${theme.gradient} text-white font-bold py-4 rounded-[20px] flex items-center justify-center gap-2 shadow-lg ${theme.btnShadow}`}
         >
-          <span className="text-base tracking-wide">เริ่มออกกำลังกาย</span>
+          <span className="text-base tracking-wide">
+            {profile?.usage_mode === 'caregiver' ? 'เริ่มออกกำลังกาย (โหมดผู้ดูแล)' : 'เริ่มออกกำลังกาย'}
+          </span>
           <ChevronRight size={18} />
         </motion.button>
       </div>

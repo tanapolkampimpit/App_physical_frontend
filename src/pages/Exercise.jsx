@@ -9,6 +9,7 @@ import { ExerciseMetricsPanel } from '../components/features/exercise/ExerciseMe
 import { ExerciseFeedbackBar } from '../components/features/exercise/ExerciseFeedbackBar';
 import { usePoseAnalysis } from '../hooks/usePoseAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
+import { speakThai } from '../utils/speak';
 
 
 /* ── Instruction overlay ─────────────────────────── */
@@ -18,8 +19,7 @@ const InstructionOverlay = ({ info, onClose }) => (
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center"
-      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)' }}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
@@ -28,8 +28,7 @@ const InstructionOverlay = ({ info, onClose }) => (
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 26, stiffness: 320 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl rounded-t-[28px] p-6 max-h-[75vh] overflow-y-auto"
-        style={{ background: 'rgba(15,15,15,0.95)', border: '1px solid rgba(255,255,255,0.12)' }}
+        className="w-full max-w-2xl rounded-t-[28px] p-6 max-h-[75vh] overflow-y-auto bg-[#0f0f0f]/95 border border-white/10"
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-white font-black text-xl tracking-tight">วิธีทำท่า</h2>
@@ -55,7 +54,7 @@ const InstructionOverlay = ({ info, onClose }) => (
           ))}
         </ol>
 
-        <div className="rounded-2xl p-4" style={{ background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.25)' }}>
+        <div className="rounded-2xl p-4 bg-orange-400/10 border border-orange-400/25">
           <div className="flex items-center gap-2 mb-2">
             <TriangleAlert size={14} className="text-amber-400" />
             <span className="text-amber-400 text-xs font-bold uppercase tracking-wide">ข้อควรระวัง</span>
@@ -83,8 +82,7 @@ const ArmBadge = ({ activeArm }) => {
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)' }}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-xl border border-white/10"
     >
       <ArrowLeftRight size={12} className="text-white/50" />
       <span className="text-xs font-bold text-white/80">{ARM_LABEL[activeArm]}</span>
@@ -101,26 +99,43 @@ export const Exercise = () => {
 
   const [reps] = useState(8);
   const [seconds, setSeconds] = useState(0);
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(false);
+  const [phase, setPhase] = useState('calibration');
+  const [calibrationSeconds, setCalibrationSeconds] = useState(30);
   const [keypoints, setKeypoints] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  const { feedback, accuracy, activeArm } = usePoseAnalysis(keypoints);
+  const { feedback, accuracy, activeArm, isDangerous } = usePoseAnalysis(keypoints);
   const progress = accuracy;
   const { settings } = useSettings();
 
   useEffect(() => {
-    if (settings.aiVoice && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const msg = new SpeechSynthesisUtterance(`Are you ready? Prepare for ${exercise.title} in 3... 2... 1... Go!`);
-      msg.lang = 'en-US';
-      msg.rate = 0.9;
-      window.speechSynthesis.speak(msg);
+    if (phase === 'calibration') {
+      if (settings.aiVoice) {
+        speakThai('กรุณายืนนิ่งเพื่อปรับเทียบสมดุล 30 วินาที');
+      }
+    } else if (phase === 'active') {
+      if (settings.aiVoice) {
+        speakThai(`พร้อมแล้ว เริ่ม ${exercise.title} ได้เลยครับ`);
+      }
     }
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, [exercise.title, settings.aiVoice]);
+  }, [exercise.title, settings.aiVoice, phase]);
+
+  useEffect(() => {
+    if (phase === 'calibration') {
+      const timer = setInterval(() => {
+        setCalibrationSeconds((s) => {
+          if (s <= 1) {
+            setPhase('active');
+            setIsRunning(true);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [phase]);
 
 
 
@@ -142,7 +157,7 @@ export const Exercise = () => {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden text-white">
       {/* Camera canvas */}
-      <ExerciseCanvas onKeypoints={setKeypoints} />
+      <ExerciseCanvas onKeypoints={setKeypoints} isDangerous={isDangerous} />
 
       {/* Gradient overlay (top + bottom scrim) */}
       <div
@@ -162,8 +177,7 @@ export const Exercise = () => {
             <motion.button
               whileTap={{ scale: 0.88 }}
               onClick={() => setShowInstructions(true)}
-              className="bg-black/45 p-3 rounded-full flex-shrink-0"
-              style={{ backdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.1)' }}
+              className="bg-black/45 p-3 rounded-full flex-shrink-0 backdrop-blur-xl border border-white/10"
             >
               <CircleHelp size={22} className="text-white" />
             </motion.button>
@@ -184,17 +198,21 @@ export const Exercise = () => {
 
         {/* Bottom: Coaching + Stop */}
         <div className="flex flex-col gap-4">
-          <ExerciseFeedbackBar feedback={feedback} progress={progress} />
+          {phase === 'calibration' ? (
+            <div className="bg-blue-600/90 backdrop-blur-md border border-blue-400/30 p-4 rounded-2xl shadow-xl text-center">
+              <h3 className="text-blue-100 text-sm font-semibold mb-1 uppercase tracking-wider">กำลังปรับเทียบสมดุลร่างกาย</h3>
+              <p className="text-white text-3xl font-black">{calibrationSeconds} วินาที</p>
+              <p className="text-blue-200 text-xs mt-2">กรุณายืนนิ่งๆ ให้อยู่ในกรอบกล้อง</p>
+            </div>
+          ) : (
+            <ExerciseFeedbackBar feedback={feedback} progress={progress} />
+          )}
 
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.96 }}
             onClick={handleStop}
-            className="w-full py-5 rounded-[20px] text-xl font-black uppercase tracking-widest transition-all"
-            style={{
-              background: '#F43F5E',
-              boxShadow: '0 10px 32px rgba(244,63,94,0.42)',
-            }}
+            className="w-full py-5 rounded-[20px] text-xl font-black uppercase tracking-widest transition-all bg-rose-500 shadow-[0_10px_32px_rgba(244,63,94,0.42)]"
           >
             Stop Exercise
           </motion.button>

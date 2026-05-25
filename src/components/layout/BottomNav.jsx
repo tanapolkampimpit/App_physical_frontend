@@ -37,18 +37,26 @@ export const BottomNav = () => {
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate(path)}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 px-5 py-2 rounded-2xl min-h-[56px] transition-all duration-200 cursor-pointer',
-                active
-                  ? 'bg-[#89f5e7] dark:bg-emerald-500/20 text-[#00201d] dark:text-emerald-400'
-                  : 'text-[#3d4947] dark:text-gray-400 hover:bg-[#dde4e3]/60 dark:hover:bg-gray-800'
+                'flex flex-col items-center justify-center min-h-[56px] transition-all duration-200 cursor-pointer flex-1 gap-1',
+                active ? 'text-[#00201d] dark:text-emerald-400' : 'text-[#3d4947] dark:text-gray-400'
               )}
             >
-              <Icon
-                size={currentIconSize}
-                className={active ? 'text-[#00685f] dark:text-emerald-400' : 'text-[#6d7a77] dark:text-gray-400'}
-                strokeWidth={active ? 2.5 : 2}
-              />
-              <span className={cn('text-xs leading-none', active ? 'font-bold text-[#00685f] dark:text-emerald-400' : 'font-normal text-[#6d7a77] dark:text-gray-400')}>
+              <div className={cn(
+                'px-5 py-1.5 rounded-full transition-all duration-250 flex items-center justify-center relative',
+                active ? 'bg-[#89f5e7] dark:bg-emerald-500/20' : 'hover:bg-[#dde4e3]/40 dark:hover:bg-gray-800/40'
+              )}>
+                <Icon
+                  size={currentIconSize}
+                  className={active ? 'text-[#00685f] dark:text-emerald-400' : 'text-[#6d7a77] dark:text-gray-400'}
+                  strokeWidth={active ? 2.5 : 2}
+                />
+              </div>
+              <span className={cn(
+                'text-xs leading-none mt-0.5',
+                active 
+                  ? 'font-bold text-[#00685f] dark:text-emerald-400' 
+                  : 'font-normal text-[#6d7a77] dark:text-gray-400'
+              )}>
                 {label}
               </span>
             </motion.button>
