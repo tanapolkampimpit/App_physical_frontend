@@ -8,10 +8,8 @@ import { cn } from '../lib/utils';
 // Import images
 import seatedKneeExtensionsImg from '../assets/seated_knee_extensions.png';
 import armCirclesImg from '../assets/arm_circles.png';
-import walkingBalanceImg from '../assets/walking_balance.png';
 import hipFlexorStretchImg from '../assets/hip_flexor_stretch.png';
 import resistanceBandRowsImg from '../assets/resistance_band_rows.png';
-import singleLegStandImg from '../assets/single_leg_stand.png';
 import avatarImg from '../assets/avatar.png';
 
 const CAREGIVER_PROGRAMS = [

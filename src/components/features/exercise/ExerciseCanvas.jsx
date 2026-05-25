@@ -3,7 +3,7 @@ import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-webgl';
 import * as bodySegmentation from '@tensorflow-models/body-segmentation';
 import { loadYolov8Model, detectPose } from '../../../lib/yolov8';
-import { Video, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Video, Sparkles } from 'lucide-react';
 import { SKELETON_CONNECTIONS } from './exerciseData';
 
 // ค่าความหน่วงสำหรับ Exponential Moving Average (EMA) เพื่อเพิ่มความเสถียร (0.0 = นิ่งสุด/หน่วงสุด, 1.0 = ตามมือถือ/สั่นสุด)
@@ -220,8 +220,6 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady, isDangerous }) => {
   const segmentationRef = useRef(null);
   const maskImageDataRef = useRef(null);
 
-  const maskCanvasRef = useRef(null);
-  const offscreenCanvasRef = useRef(null);
 
   // ซิงค์สเตตของ backgroundMode กับ Ref เพื่อเลี่ยงการปิดกั้นลูปกล้อง
   useEffect(() => {
