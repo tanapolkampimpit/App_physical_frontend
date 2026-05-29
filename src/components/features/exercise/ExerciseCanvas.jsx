@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { SKELETON_CONNECTIONS, ARM_JOINTS, getKeypointColor } from './exerciseData';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { SKELETON_CONNECTIONS, ARM_JOINTS } from './exerciseData';
 
 const calcAngle = (a, b, c) => {
   if (!a || !b || !c) return null;
@@ -97,6 +97,26 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
   const [cameraReady, setCameraReady] = useState(false);
   const [detectionStatus, setDetectionStatus] = useState('Connecting to Backend...');
 
+  const sendFrameLoop = useCallback(function loop() {
+    if (!videoRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+      const base64Image = tempCanvas.toDataURL('image/jpeg', 0.6);
+      wsRef.current.send(base64Image);
+    }
+
+    // Schedule next frame
+    animationRef.current = requestAnimationFrame(loop);
+  }, []);
+
   // Initialize camera and WebSocket
   useEffect(() => {
     let stream = null;
@@ -168,27 +188,7 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
       if (wsRef.current) wsRef.current.close();
       if (stream) stream.getTracks().forEach((track) => track.stop());
     };
-  }, [onKeypoints, onCameraReady]);
-
-  const sendFrameLoop = () => {
-    if (!videoRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    const video = videoRef.current;
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      const ctx = tempCanvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-      const base64Image = tempCanvas.toDataURL('image/jpeg', 0.6);
-      wsRef.current.send(base64Image);
-    }
-
-    // Schedule next frame
-    animationRef.current = requestAnimationFrame(sendFrameLoop);
-  };
+  }, [onKeypoints, onCameraReady, sendFrameLoop]);
 
   // Drawing loop
   useEffect(() => {
