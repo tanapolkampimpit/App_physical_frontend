@@ -143,29 +143,31 @@ export const mockKeypoints = [
   { x: 0.64, y: 1.0 },
 ];
 
-// MoveNet 17-keypoint skeleton connections (COCO format)
-// 0:nose 1:left_eye 2:right_eye 3:left_ear 4:right_ear
-// 5:left_shoulder 6:right_shoulder 7:left_elbow 8:right_elbow
-// 9:left_wrist 10:right_wrist 11:left_hip 12:right_hip
-// 13:left_knee 14:right_knee 15:left_ankle 16:right_ankle
+// Custom Backend 12-keypoint skeleton connections
+// 0:left_shoulder 1:right_shoulder 2:left_elbow 3:right_elbow
+// 4:left_wrist 5:right_wrist 6:left_hip 7:right_hip
+// 8:left_knee 9:right_knee 10:left_ankle 11:right_ankle
 export const SKELETON_CONNECTIONS = [
-  // ใบหน้า
-  [0, 1], [0, 2], [1, 3], [2, 4],
   // ลำตัว
-  [5, 6], [5, 11], [6, 12], [11, 12],
+  [0, 1], [0, 6], [1, 7], [6, 7],
   // แขนซ้าย: shoulder -> elbow -> wrist
-  [5, 7], [7, 9],
+  [0, 2], [2, 4],
   // แขนขวา
-  [6, 8], [8, 10],
+  [1, 3], [3, 5],
   // ขาซ้าย: hip -> knee -> ankle
-  [11, 13], [13, 15],
+  [6, 8], [8, 10],
   // ขาขวา
-  [12, 14], [14, 16],
+  [7, 9], [9, 11],
 ];
 
-// MoveNet: index คี่ = ซ้าย, index คู่ = ขวา (ยกเว้น nose=0)
-const LEFT_INDICES = new Set([1, 3, 5, 7, 9, 11, 13, 15]);
-const RIGHT_INDICES = new Set([2, 4, 6, 8, 10, 12, 14, 16]);
+export const ARM_JOINTS = {
+  left: [0, 2, 4],
+  right: [1, 3, 5],
+};
+
+// Backend Model: index คู่ = ซ้าย, index คี่ = ขวา
+const LEFT_INDICES = new Set([0, 2, 4, 6, 8, 10]);
+const RIGHT_INDICES = new Set([1, 3, 5, 7, 9, 11]);
 
 export const getKeypointColor = (index) => {
   if (LEFT_INDICES.has(index)) return '#10b981';

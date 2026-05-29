@@ -1,14 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import * as tf from '@tensorflow/tfjs';
-import '@tensorflow/tfjs-backend-webgl';
-import * as poseDetection from '@tensorflow-models/pose-detection';
-import { SKELETON_CONNECTIONS } from './exerciseData';
-
-// MoveNet: shoulder(5/6) - elbow(7/8) - wrist(9/10)
-const ARM_JOINTS = {
-  left: [5, 7, 9],
-  right: [6, 8, 10],
-};
+import { SKELETON_CONNECTIONS, ARM_JOINTS, getKeypointColor } from './exerciseData';
 
 const calcAngle = (a, b, c) => {
   if (!a || !b || !c) return null;
@@ -98,128 +89,140 @@ const drawKeypoints = (ctx, keypoints, scaleX, scaleY) => {
 export const ExerciseCanvas = ({ onKeypoints, onCameraReady }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const detectorRef = useRef(null);
+  const wsRef = useRef(null);
   const keyPointsRef = useRef([]);
   const animationRef = useRef(null);
   const drawAnimRef = useRef(null);
-  const processingRef = useRef(false);
+  
   const [cameraReady, setCameraReady] = useState(false);
-  const [detectionStatus, setDetectionStatus] = useState('Loading model...');
+  const [detectionStatus, setDetectionStatus] = useState('Connecting to Backend...');
 
-  // Initialize detector and camera
+  // Initialize camera and WebSocket
   useEffect(() => {
-    let videoElem = null;
-    const initialize = async () => {
+    let stream = null;
+
+    const initCameraAndWS = async () => {
       try {
-        setDetectionStatus('Loading model...');
-
-        // บังคับ WebGL ก่อน tf.ready() เพื่อหลีกเลี่ยง WebGPU บน Windows
-        await tf.setBackend('webgl');
-        await tf.ready();
-
-        // MoveNet ทำงานได้กับร่างกายบางส่วน ไม่ต้องเห็นเต็มตัว
-        const detector = await poseDetection.createDetector(
-          poseDetection.SupportedModels.MoveNet,
-          {
-            modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-          }
-        );
-        detectorRef.current = detector;
-        setDetectionStatus('Camera starting...');
-
-        // Get camera stream
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+        setDetectionStatus('Starting camera...');
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' },
           audio: false,
         });
 
         if (videoRef.current) {
-          videoElem = videoRef.current;
-          videoElem.srcObject = stream;
-          setCameraReady(true);
-          onCameraReady?.(true);
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            setCameraReady(true);
+            onCameraReady?.(true);
+            // Setup WebSocket connection
+            connectWebSocket();
+          };
         }
-      } catch (error) {
-        console.error('Initialize error:', error);
-        setDetectionStatus('Error: ' + error.message);
+      } catch (err) {
+        console.error('Failed to start camera:', err);
+        setDetectionStatus('Camera error: ' + err.message);
         setCameraReady(false);
         onCameraReady?.(false);
       }
     };
 
-    initialize();
+    const connectWebSocket = () => {
+      setDetectionStatus('Connecting to model...');
+      wsRef.current = new WebSocket(`ws://${window.location.hostname}:8000/ws/pose`);
+
+      wsRef.current.onopen = () => {
+        console.log('WebSocket Connected');
+        setDetectionStatus(''); // Clear status when connected
+        sendFrameLoop();
+      };
+
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data && data.length > 0) {
+            keyPointsRef.current = data[0];
+            onKeypoints?.(data[0]);
+          } else {
+            keyPointsRef.current = [];
+          }
+        } catch (err) {
+          console.error("Failed to parse pose data:", err);
+        }
+      };
+
+      wsRef.current.onerror = (err) => {
+        console.error('WebSocket Error:', err);
+        setDetectionStatus('Connection error. Is backend running?');
+      };
+
+      wsRef.current.onclose = () => {
+        setDetectionStatus('Backend disconnected');
+      };
+    };
+
+    initCameraAndWS();
 
     return () => {
-      if (videoElem?.srcObject) {
-        videoElem.srcObject.getTracks().forEach((track) => track.stop());
-      }
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       if (drawAnimRef.current) cancelAnimationFrame(drawAnimRef.current);
+      if (wsRef.current) wsRef.current.close();
+      if (stream) stream.getTracks().forEach((track) => track.stop());
     };
   }, [onKeypoints, onCameraReady]);
 
-  // Pose detection loop
+  const sendFrameLoop = () => {
+    if (!videoRef.current || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    const video = videoRef.current;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = video.videoWidth;
+      tempCanvas.height = video.videoHeight;
+      const ctx = tempCanvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+      const base64Image = tempCanvas.toDataURL('image/jpeg', 0.6);
+      wsRef.current.send(base64Image);
+    }
+
+    // Schedule next frame
+    animationRef.current = requestAnimationFrame(sendFrameLoop);
+  };
+
+  // Drawing loop
   useEffect(() => {
-    if (!cameraReady || !videoRef.current || !detectorRef.current || !canvasRef.current) return;
+    if (!cameraReady || !videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
+    
+    // Scale canvas to match window while keeping video hidden
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
-    const detect = async () => {
-      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-        animationRef.current = requestAnimationFrame(detect);
-        return;
-      }
-
-      if (!processingRef.current) {
-        processingRef.current = true;
-
-        try {
-          const poses = await detectorRef.current.estimatePoses(video, { flipHorizontal: false });
-          if (poses && poses[0]?.keypoints) {
-            keyPointsRef.current = poses[0].keypoints;
-            onKeypoints?.(poses[0].keypoints);
-            setDetectionStatus('');
-          } else {
-            setDetectionStatus('No pose detected');
-          }
-        } catch (err) {
-          console.error('Detection error:', err);
-          setDetectionStatus('Detection error: ' + err.message);
-        }
-
-        processingRef.current = false;
-      }
-
-      animationRef.current = requestAnimationFrame(detect);
-    };
 
     const draw = () => {
       const ctx = canvas.getContext('2d');
       if (ctx && video.readyState === video.HAVE_ENOUGH_DATA) {
+        // Draw video background
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Draw keypoints and skeleton
         if (keyPointsRef.current.length > 0) {
-          const scaleX = canvas.width / (video.videoWidth || canvas.width);
-          const scaleY = canvas.height / (video.videoHeight || canvas.height);
+          const scaleX = canvas.width / (video.videoWidth || 640);
+          const scaleY = canvas.height / (video.videoHeight || 480);
           drawKeypoints(ctx, keyPointsRef.current, scaleX, scaleY);
         }
       }
       drawAnimRef.current = requestAnimationFrame(draw);
     };
 
-    detect();
     draw();
 
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (drawAnimRef.current) cancelAnimationFrame(drawAnimRef.current);
     };
-  }, [cameraReady, onKeypoints]);
+  }, [cameraReady]);
 
   const handleVideoMetadata = () => {
     if (canvasRef.current) {

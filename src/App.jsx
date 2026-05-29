@@ -8,6 +8,7 @@ import { Exercise } from './pages/Exercise';
 import { Report } from './pages/Report';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
+import { PoseTest } from './pages/PoseTest';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 export const App = () => {
@@ -76,6 +77,14 @@ export const App = () => {
           element={
             <Layout showNav={true}>
               <History />
+            </Layout>
+          }
+        />
+        <Route
+          path="/pose-test"
+          element={
+            <Layout showNav={false}>
+              <PoseTest />
             </Layout>
           }
         />
