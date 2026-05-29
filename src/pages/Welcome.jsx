@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, ShieldCheck, Brain, TrendingUp, ArrowRight, X, User, Users, Check } from 'lucide-react';
+import { Activity, ArrowRight, X, User, Users, Check, Stethoscope } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { saveProfile, getProfile } from '../lib/profileStore';
 
-const FEATURES = [
-  { icon: Brain, label: 'AI วิเคราะห์ท่าทาง real-time', desc: 'ตรวจจับการเคลื่อนไหวด้วย MoveNet', color: 'text-purple-600 bg-purple-50' },
-  { icon: TrendingUp, label: 'ติดตามความก้าวหน้า', desc: 'กราฟ Range of Motion รายวัน/สัปดาห์', color: 'text-blue-600 bg-blue-50' },
-  { icon: ShieldCheck, label: 'ปลอดภัย แนะนำโดยนักกายภาพ', desc: 'ท่าออกกำลังกายที่ได้รับการออกแบบมาแล้ว', color: 'text-emerald-600 bg-emerald-50' },
-];
+
 
 export const Welcome = () => {
   const navigate = useNavigate();
@@ -36,26 +33,13 @@ export const Welcome = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [selectedMode, setSelectedMode] = useState('self');
 
-  const handleStart = async (mode) => {
+  const handleStart = (mode) => {
     setIsStarting(true);
-    try {
-      const res = await fetch('http://localhost:8000/profile');
-      const profile = await res.json();
-      
-      const updatedProfile = { ...profile, usage_mode: mode };
-      await fetch('http://localhost:8000/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedProfile)
-      });
-    } catch (error) {
-      console.error('Failed to set mode', error);
-    }
-    if (mode === 'caregiver') {
-      navigate('/caregiver-programs');
-    } else {
-      navigate('/programs');
-    }
+    const profile = getProfile();
+    saveProfile({ ...profile, usage_mode: mode });
+    
+    // Always navigate to assessment first
+    navigate('/assessment');
   };
 
   return (
@@ -63,6 +47,18 @@ export const Welcome = () => {
       "min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 flex items-center justify-center p-4 lg:p-8 relative",
       location.pathname === '/welcome' ? 'pb-40' : 'pb-28'
     )}>
+      {/* Therapist Entry Point */}
+      <div className="absolute top-4 right-4 z-50">
+        <button 
+          onClick={() => navigate('/therapist/dashboard')} 
+          className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur border border-blue-100 rounded-full text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors shadow-sm"
+        >
+          <Stethoscope size={16} />
+          <span className="hidden sm:inline">สำหรับนักกายภาพ (Therapist)</span>
+          <span className="sm:hidden">นักกายภาพ</span>
+        </button>
+      </div>
+
       <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center z-10">
 
         {/* Left — Branding */}
@@ -93,26 +89,7 @@ export const Welcome = () => {
             </p>
           </div>
 
-          {/* Features — visible on desktop left column */}
-          <div className="hidden lg:flex flex-col gap-3 w-full">
-            {FEATURES.map(({ icon: Icon, label, desc, color }, i) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 + i * 0.08 }}
-                className="flex items-start gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-default"
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-                  <Icon size={18} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-500">{desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+
         </motion.div>
 
         {/* Right — Start card */}
@@ -128,23 +105,7 @@ export const Welcome = () => {
               <p className="text-sm text-gray-500 mt-1">กรุณาเลือกรูปแบบการออกกำลังกายที่เหมาะสมกับคุณ</p>
             </div>
 
-            {/* Features — visible on mobile */}
-            <div className="lg:hidden flex flex-col gap-3">
-              {FEATURES.map(({ icon: Icon, label, color }, i) => (
-                <motion.div
-                  key={label}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.07 }}
-                  className="flex items-center gap-3 bg-gray-50 rounded-2xl px-3 py-2.5"
-                >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
-                    <Icon size={16} />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">{label}</span>
-                </motion.div>
-              ))}
-            </div>
+
 
             {/* Mode Selection Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

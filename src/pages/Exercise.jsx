@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CircleHelp, TriangleAlert, ArrowLeftRight } from 'lucide-react';
+import { X, CircleHelp, TriangleAlert } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockPrograms, exerciseInstructions } from '../components/features/exercise/exerciseData';
 import { ExerciseCanvas } from '../components/features/exercise/ExerciseCanvas';
@@ -9,8 +9,28 @@ import { ExerciseMetricsPanel } from '../components/features/exercise/ExerciseMe
 import { ExerciseFeedbackBar } from '../components/features/exercise/ExerciseFeedbackBar';
 import { usePoseAnalysis } from '../hooks/usePoseAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
-import { speakThai } from '../utils/speak';
+import { speakThai, cancelSpeech } from '../utils/speak';
+import { ExerciseDemoOverlay } from '../components/features/exercise/ExerciseDemoOverlay';
+import { POSE_CONFIGS } from '../lib/repCounterFSM';
 
+// Import exercise images
+import shoulderRotationImg from '../assets/shoulder_rotation.png';
+import overheadRaiseImg from '../assets/overhead_raise.png';
+import seatedKneeExtImg from '../assets/seated_knee_ext.png';
+import lyingKneeFlexImg from '../assets/lying_knee_flex.png';
+import hipAbductionImg from '../assets/hip_abduction.png';
+import bandPullImg from '../assets/band_pull.png';
+import sitToStandImg from '../assets/sit_to_stand.png';
+
+const EXERCISE_IMAGES = {
+  1: shoulderRotationImg,
+  2: overheadRaiseImg,
+  3: seatedKneeExtImg,
+  4: lyingKneeFlexImg,
+  5: hipAbductionImg,
+  6: bandPullImg,
+  7: sitToStandImg
+};
 
 /* ── Instruction overlay ─────────────────────────── */
 const InstructionOverlay = ({ info, onClose }) => (
@@ -19,7 +39,7 @@ const InstructionOverlay = ({ info, onClose }) => (
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-md font-sans"
       onClick={onClose}
     >
       <motion.div
@@ -73,81 +93,97 @@ const InstructionOverlay = ({ info, onClose }) => (
   </AnimatePresence>
 );
 
-/* ── Active Arm badge ────────────────────────────── */
-const ARM_LABEL = { left: 'แขนซ้าย', right: 'แขนขวา', both: 'สองแขน', none: '-' };
-
-const ArmBadge = ({ activeArm }) => {
-  if (activeArm === 'none') return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/45 backdrop-blur-xl border border-white/10"
-    >
-      <ArrowLeftRight size={12} className="text-white/50" />
-      <span className="text-xs font-bold text-white/80">{ARM_LABEL[activeArm]}</span>
-    </motion.div>
-  );
-};
-
 /* ── Main page ───────────────────────────────────── */
 export const Exercise = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const exercise = mockPrograms.find((p) => p.id === parseInt(id)) ?? { title: 'Exercise' };
-  const info = exerciseInstructions[parseInt(id)];
+  const exerciseId = parseInt(id) || 1;
 
-  const [reps] = useState(8);
+  const exercise = mockPrograms.find((p) => p.id === exerciseId) ?? { title: 'Exercise', titleEn: 'Physiotherapy' };
+  const info = exerciseInstructions[exerciseId];
+  const poseConfig = POSE_CONFIGS[exerciseId];
+
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [phase, setPhase] = useState('calibration');
-  const [calibrationSeconds, setCalibrationSeconds] = useState(30);
+  const [phase, setPhase] = useState('demo'); // 'demo' | 'active'
   const [keypoints, setKeypoints] = useState(null);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [capturedImages, setCapturedImages] = useState([]);
 
-  const { feedback, accuracy, activeArm, isDangerous } = usePoseAnalysis(keypoints);
-  const progress = accuracy;
   const { settings } = useSettings();
 
+  const {
+    feedback,
+    currentAngle,
+    repCount,
+    targetReps,
+    fsmState,
+    shouldCapture,
+    activeSide,
+    isDangerous
+  } = usePoseAnalysis(keypoints, exerciseId);
+
+  // Cancel speech on unmount
   useEffect(() => {
-    if (phase === 'calibration') {
-      if (settings.aiVoice) {
-        speakThai('กรุณายืนนิ่งเพื่อปรับเทียบสมดุล 30 วินาที');
-      }
-    } else if (phase === 'active') {
-      if (settings.aiVoice) {
-        speakThai(`พร้อมแล้ว เริ่ม ${exercise.title} ได้เลยครับ`);
-      }
-    }
-  }, [exercise.title, settings.aiVoice, phase]);
+    return () => {
+      cancelSpeech();
+    };
+  }, []);
 
+  // Trigger TTS voice when entering the active phase
   useEffect(() => {
-    if (phase === 'calibration') {
-      const timer = setInterval(() => {
-        setCalibrationSeconds((s) => {
-          if (s <= 1) {
-            setPhase('active');
-            setIsRunning(true);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
+    if (phase === 'active' && settings.aiVoice) {
+      speakThai(`พร้อมแล้ว เริ่ม ${exercise.title} ได้เลยครับ`);
     }
-  }, [phase]);
+  }, [phase, exercise.title, settings.aiVoice]);
 
-
-
+  // Track active duration
   useEffect(() => {
     if (!isRunning) return;
     const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(timer);
   }, [isRunning]);
 
+  // Capture peak image screenshot when triggered by FSM
+  useEffect(() => {
+    if (shouldCapture && phase === 'active') {
+      const canvas = document.getElementById("mediapipe-canvas");
+      if (canvas) {
+        try {
+          const imageSrc = canvas.toDataURL("image/jpeg", 0.75);
+          setCapturedImages((prev) => [
+            ...prev,
+            {
+              pose: exercise.title,
+              rep: repCount,
+              imageSrc,
+              angle: currentAngle,
+              timestamp: Date.now()
+            }
+          ]);
+        } catch (err) {
+          console.error("Screenshot capture failed:", err);
+        }
+      }
+    }
+  }, [shouldCapture, phase, repCount, currentAngle, exercise.title]);
+
   const handleStop = () => {
     setIsRunning(false);
-    setTimeout(() => navigate('/report/1'), 400);
+    const mins = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    const timeStr = `${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+    setTimeout(() => {
+      navigate(`/report/${exerciseId}`, {
+        state: {
+          duration: timeStr,
+          reps: repCount,
+          targetReps: targetReps,
+          capturedImages: capturedImages
+        }
+      });
+    }, 400);
   };
 
   const minutes = Math.floor(seconds / 60);
@@ -155,17 +191,38 @@ export const Exercise = () => {
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden text-white">
-      {/* Camera canvas */}
-      <ExerciseCanvas onKeypoints={setKeypoints} isDangerous={isDangerous} />
-
-      {/* Gradient overlay (top + bottom scrim) */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.65) 100%)', zIndex: 2 }}
+    <div className="fixed inset-0 bg-black overflow-hidden text-white font-sans">
+      {/* MediaPipe Camera Canvas */}
+      <ExerciseCanvas 
+        onKeypoints={setKeypoints} 
+        isDangerous={isDangerous} 
+        exerciseId={exerciseId} 
       />
 
-      {/* Interface layer */}
+      {/* Scrim overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 35%, transparent 55%, rgba(0,0,0,0.65) 100%)',
+          zIndex: 2
+        }}
+      />
+
+      {/* Exercise Demo Countdown Overlay */}
+      {phase === 'demo' && (
+        <ExerciseDemoOverlay
+          exercise={exercise}
+          exerciseImage={EXERCISE_IMAGES[exerciseId]}
+          peakAngle={poseConfig?.peakAngle ?? 90}
+          targetReps={poseConfig?.targetReps ?? 10}
+          onComplete={() => {
+            setPhase('active');
+            setIsRunning(true);
+          }}
+        />
+      )}
+
+      {/* Interface overlay */}
       <main className="absolute inset-0 flex flex-col p-5 gap-0" style={{ zIndex: 10 }}>
         {/* Top bar */}
         <div className="flex items-center gap-3">
@@ -184,29 +241,47 @@ export const Exercise = () => {
           )}
         </div>
 
-        {/* Left metrics */}
+        {/* Dynamic metrics panel */}
         <div className="flex items-start gap-3 mt-2">
-          <ExerciseMetricsPanel reps={reps} formattedTime={formattedTime} accuracy={accuracy} />
-          {/* Arm badge floats next to metrics */}
-          <div className="mt-1">
-            <ArmBadge activeArm={activeArm} />
-          </div>
+          <ExerciseMetricsPanel 
+            repCount={repCount} 
+            targetReps={targetReps}
+            currentAngle={currentAngle}
+            peakAngle={poseConfig?.peakAngle ?? 90}
+            formattedTime={formattedTime} 
+          />
         </div>
 
         {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Bottom: Coaching + Stop */}
-        <div className="flex flex-col gap-4">
-          {phase === 'calibration' ? (
-            <div className="bg-blue-600/90 backdrop-blur-md border border-blue-400/30 p-4 rounded-2xl shadow-xl text-center">
-              <h3 className="text-blue-100 text-sm font-semibold mb-1 uppercase tracking-wider">กำลังปรับเทียบสมดุลร่างกาย</h3>
-              <p className="text-white text-3xl font-black">{calibrationSeconds} วินาที</p>
-              <p className="text-blue-200 text-xs mt-2">กรุณายืนนิ่งๆ ให้อยู่ในกรอบกล้อง</p>
-            </div>
-          ) : (
-            <ExerciseFeedbackBar feedback={feedback} progress={progress} />
+        <div className="flex-1 relative">
+          {/* Small PiP Tutorial Window */}
+          {phase === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              className="absolute top-4 right-0 w-28 lg:w-36 aspect-square bg-slate-900 rounded-2xl border-2 border-white/20 shadow-2xl overflow-hidden z-20 flex items-center justify-center"
+            >
+              <img 
+                src={EXERCISE_IMAGES[exerciseId]} 
+                alt="Tutorial" 
+                className="w-full h-full object-contain opacity-90"
+              />
+              <div className="absolute top-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px] font-bold text-white flex items-center gap-1 backdrop-blur-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                ตัวอย่าง
+              </div>
+            </motion.div>
           )}
+        </div>
+
+        {/* Coach coaching bar + Stop Button */}
+        <div className="flex flex-col gap-4">
+          <ExerciseFeedbackBar 
+            feedback={feedback} 
+            progress={(repCount / targetReps) * 100} 
+            isDangerous={isDangerous} 
+            fsmState={fsmState}
+          />
 
           <motion.button
             whileHover={{ scale: 1.01 }}
@@ -214,12 +289,12 @@ export const Exercise = () => {
             onClick={handleStop}
             className="w-full py-5 rounded-[20px] text-xl font-black uppercase tracking-widest transition-all bg-rose-500 shadow-[0_10px_32px_rgba(244,63,94,0.42)]"
           >
-            Stop Exercise
+            จบการออกกำลังกาย
           </motion.button>
         </div>
       </main>
 
-      {/* Instruction overlay */}
+      {/* Instructions slide overlay */}
       {showInstructions && info && (
         <InstructionOverlay info={info} onClose={() => setShowInstructions(false)} />
       )}

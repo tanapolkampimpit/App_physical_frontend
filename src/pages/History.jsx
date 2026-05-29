@@ -4,11 +4,11 @@ import { TrendingUp, Flame, Target, BarChart2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const MOCK_SESSIONS = [
-  { id: 1, exercise: 'Seated Knee Extensions', date: '15 ม.ค.', time: '14:30', accuracy: 95, maxAngle: 120, painScale: 2, gradient: 'from-blue-400 to-blue-600' },
-  { id: 2, exercise: 'Arm Circles', date: '14 ม.ค.', time: '10:15', accuracy: 92, maxAngle: 135, painScale: 3, gradient: 'from-purple-400 to-purple-600' },
-  { id: 3, exercise: 'Hip Flexor Stretch', date: '13 ม.ค.', time: '09:45', accuracy: 88, maxAngle: 90, painScale: 4, gradient: 'from-pink-400 to-pink-600' },
-  { id: 4, exercise: 'Walking Balance', date: '12 ม.ค.', time: '15:20', accuracy: 91, maxAngle: 0, painScale: 2, gradient: 'from-orange-400 to-orange-600' },
-  { id: 5, exercise: 'Resistance Band Rows', date: '11 ม.ค.', time: '11:00', accuracy: 94, maxAngle: 110, painScale: 5, gradient: 'from-green-400 to-green-600' },
+  { id: 1, exercise: 'Seated Knee Extensions', date: '25 พ.ค.', time: '14:30', accuracy: 95, maxAngle: 120, painScale: 2, gradient: 'from-blue-400 to-blue-600' },
+  { id: 2, exercise: 'Arm Circles', date: '24 พ.ค.', time: '10:15', accuracy: 92, maxAngle: 135, painScale: 3, gradient: 'from-purple-400 to-purple-600' },
+  { id: 3, exercise: 'Hip Flexor Stretch', date: '23 พ.ค.', time: '09:45', accuracy: 88, maxAngle: 90, painScale: 4, gradient: 'from-pink-400 to-pink-600' },
+  { id: 4, exercise: 'Walking Balance', date: '22 พ.ค.', time: '15:20', accuracy: 91, maxAngle: 0, painScale: 2, gradient: 'from-orange-400 to-orange-600' },
+  { id: 5, exercise: 'Resistance Band Rows', date: '21 พ.ค.', time: '11:00', accuracy: 94, maxAngle: 110, painScale: 5, gradient: 'from-green-400 to-green-600' },
 ];
 
 const CHART_DATA = {

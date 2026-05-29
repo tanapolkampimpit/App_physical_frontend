@@ -1,3 +1,9 @@
+export const cancelSpeech = () => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+};
+
 export const speakThai = (text) => {
   if (!('speechSynthesis' in window)) return;
 

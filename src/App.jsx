@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Welcome } from './pages/Welcome';
+import { Assessment } from './pages/Assessment';
 import { Profile } from './pages/Profile';
 import { Programs } from './pages/Programs';
 import { CaregiverPrograms } from './pages/CaregiverPrograms';
@@ -11,6 +12,8 @@ import { Report } from './pages/Report';
 import { History } from './pages/History';
 import { Settings } from './pages/Settings';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { TherapistDashboard } from './pages/TherapistDashboard';
+import { PatientDetail } from './pages/PatientDetail';
 
 export const App = () => {
   return (
@@ -22,6 +25,14 @@ export const App = () => {
           element={
             <Layout showNav={true}>
               <Welcome />
+            </Layout>
+          }
+        />
+        <Route
+          path="/assessment"
+          element={
+            <Layout showNav={true}>
+              <Assessment />
             </Layout>
           }
         />
@@ -94,6 +105,22 @@ export const App = () => {
           element={
             <Layout showNav={true}>
               <History />
+            </Layout>
+          }
+        />
+        <Route
+          path="/therapist/dashboard"
+          element={
+            <Layout showNav={false}>
+              <TherapistDashboard />
+            </Layout>
+          }
+        />
+        <Route
+          path="/therapist/patient/:id"
+          element={
+            <Layout showNav={false}>
+              <PatientDetail />
             </Layout>
           }
         />

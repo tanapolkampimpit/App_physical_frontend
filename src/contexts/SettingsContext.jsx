@@ -54,6 +54,14 @@ export const SettingsProvider = ({ children }) => {
     }
   }, [settings.eyeCareMode]);
 
+  // Apply Global UI Size effect (scales everything using rem)
+  useEffect(() => {
+    let fontSize = '16px'; // md (default)
+    if (settings.iconSize === 'sm') fontSize = '12px';
+    if (settings.iconSize === 'lg') fontSize = '20px';
+    document.documentElement.style.fontSize = fontSize;
+  }, [settings.iconSize]);
+
   const updateSetting = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };

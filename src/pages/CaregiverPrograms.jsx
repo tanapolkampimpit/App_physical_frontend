@@ -4,12 +4,13 @@ import { Search, Clock, ChevronRight, Menu, Sparkles, User, Users } from 'lucide
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { cn } from '../lib/utils';
+import { getProfile, saveProfile } from '../lib/profileStore';
 
 // Import images
-import seatedKneeExtensionsImg from '../assets/seated_knee_extensions.png';
-import armCirclesImg from '../assets/arm_circles.png';
-import hipFlexorStretchImg from '../assets/hip_flexor_stretch.png';
-import resistanceBandRowsImg from '../assets/resistance_band_rows.png';
+import caregiverKneeImg from '../assets/caregiver_knee.png';
+import caregiverShoulderImg from '../assets/caregiver_shoulder.png';
+import caregiverAnkleImg from '../assets/caregiver_ankle.png';
+import caregiverElbowImg from '../assets/caregiver_elbow.png';
 import avatarImg from '../assets/avatar.png';
 
 const CAREGIVER_PROGRAMS = [
@@ -20,7 +21,7 @@ const CAREGIVER_PROGRAMS = [
     category: 'Upper Body',
     difficulty: 'Easy',
     duration: '10m',
-    image: armCirclesImg,
+    image: caregiverShoulderImg,
     imagePosition: 'center 25%',
     difficultyStyle: 'bg-secondary-container text-on-secondary-container',
     difficultyDot: 'bg-secondary',
@@ -32,7 +33,7 @@ const CAREGIVER_PROGRAMS = [
     category: 'Upper Body',
     difficulty: 'Easy',
     duration: '5m',
-    image: resistanceBandRowsImg,
+    image: caregiverElbowImg,
     imagePosition: 'center 25%',
     difficultyStyle: 'bg-secondary-container text-on-secondary-container',
     difficultyDot: 'bg-secondary',
@@ -44,7 +45,7 @@ const CAREGIVER_PROGRAMS = [
     category: 'Lower Body',
     difficulty: 'Medium',
     duration: '15m',
-    image: seatedKneeExtensionsImg,
+    image: caregiverKneeImg,
     imagePosition: 'center 35%',
     difficultyStyle: 'bg-surface-variant text-on-surface',
     difficultyDot: 'bg-outline',
@@ -56,7 +57,7 @@ const CAREGIVER_PROGRAMS = [
     category: 'Lower Body',
     difficulty: 'Easy',
     duration: '10m',
-    image: hipFlexorStretchImg,
+    image: caregiverAnkleImg,
     imagePosition: 'center 75%',
     difficultyStyle: 'bg-secondary-container text-on-secondary-container',
     difficultyDot: 'bg-secondary',
@@ -140,27 +141,17 @@ export const CaregiverPrograms = () => {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/profile')
-      .then((res) => res.json())
-      .then((data) => setProfile(data))
-      .catch((err) => console.error('Failed to fetch profile', err));
+    // Load local profile store instead of hitting backend :8000
+    const localProfile = getProfile();
+    setProfile(localProfile);
   }, []);
 
-  const handleModeSwitch = async (mode) => {
+  const handleModeSwitch = (mode) => {
     if (!profile) return;
-    const updated = { ...profile, usage_mode: mode };
+    const updated = saveProfile({ usage_mode: mode });
     setProfile(updated);
-    try {
-      await fetch('http://localhost:8000/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
-      if (mode === 'self') {
-        navigate('/programs');
-      }
-    } catch (err) {
-      console.error('Failed to save mode', err);
+    if (mode === 'self') {
+      navigate('/programs');
     }
   };
 
@@ -169,24 +160,15 @@ export const CaregiverPrograms = () => {
     let hidden = false;
 
     if (profile) {
-      // Hide hard exercises if pain is high
-      if (profile.pain_scale >= 8 && p.difficulty === 'Hard') {
-        hidden = true;
+      // Target area filtering for Caregiver (Passive) exercises
+      if (profile.target_area && profile.target_area !== 'all') {
+        if (profile.target_area === 'shoulder' && p.category !== 'Upper Body') hidden = true;
+        if (profile.target_area === 'knee' && p.category !== 'Lower Body') hidden = true;
+        if (profile.target_area === 'hip' && p.category !== 'Lower Body') hidden = true;
       }
       
-      // Recommend easy/medium exercises that avoid limitations
-      const limitLower = profile.limitations?.toLowerCase() || '';
-      const avoidShoulder = limitLower.includes('ไหล่') || limitLower.includes('shoulder');
-      const avoidKnee = limitLower.includes('เข่า') || limitLower.includes('knee');
-
-      if (avoidShoulder && p.category === 'Upper Body') hidden = true;
-      if (avoidKnee && p.title.includes('Knee')) hidden = true;
-      
-      // Simple recommendation logic: if it's not hidden, and matches their general issue
       if (!hidden) {
-        if (limitLower.includes('เข่า') && p.category === 'Lower Body' && p.difficulty !== 'Hard') recommended = true;
-        else if (limitLower.includes('ไหล่') && p.category === 'Upper Body' && p.difficulty !== 'Hard') recommended = true;
-        else if (profile.pain_scale >= 4 && p.difficulty === 'Easy') recommended = true; // Recommend easy if in pain
+        recommended = true;
       }
     }
     
@@ -314,15 +296,34 @@ export const CaregiverPrograms = () => {
           </div>
         </section>
 
+        {/* AI Recommendation Banner */}
+        {profile && profile.phase && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-amber-50/80 backdrop-blur border border-amber-200/50 p-4 rounded-[24px] flex gap-3 shadow-sm"
+          >
+            <div className="p-2 bg-amber-100 rounded-xl text-amber-600 h-fit">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-amber-900">AI แนะนำสำหรับคุณ</h3>
+              <p className="text-sm text-amber-700 mt-0.5">
+                ท่าในโหมดผู้ดูแลทั้งหมดเป็นท่า Passive ที่ปลอดภัยสำหรับผู้ป่วยระยะ {profile.phase === 'acute' ? 'เฉียบพลัน' : profile.phase === 'sub_acute' ? 'กึ่งเฉียบพลัน' : 'ฟื้นฟู'} 
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Program List */}
-        <section className="flex flex-col gap-4 mt-2">
+        <section className="flex flex-col gap-4">
           <AnimatePresence mode="popLayout">
             {filtered.map((p, i) => (
               <ProgramCard
                 key={p.id}
                 program={p}
                 index={i}
-                onClick={() => navigate(`/caregiver-exercise/${p.id}`)}
+                onClick={() => navigate(`/exercise/${p.id}/preview`)}
               />
             ))}
           </AnimatePresence>

@@ -1,97 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Clock, ChevronRight, Menu, Sparkles, User, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { cn } from '../lib/utils';
+import { getProfile, saveProfile } from '../lib/profileStore';
 
 // Import images
-import seatedKneeExtensionsImg from '../assets/seated_knee_extensions.png';
-import armCirclesImg from '../assets/arm_circles.png';
-import walkingBalanceImg from '../assets/walking_balance.png';
-import hipFlexorStretchImg from '../assets/hip_flexor_stretch.png';
-import resistanceBandRowsImg from '../assets/resistance_band_rows.png';
-import singleLegStandImg from '../assets/single_leg_stand.png';
+import shoulderRotationImg from '../assets/shoulder_rotation.png';
+import overheadRaiseImg from '../assets/overhead_raise.png';
+import seatedKneeExtImg from '../assets/seated_knee_ext.png';
+import lyingKneeFlexImg from '../assets/lying_knee_flex.png';
+import hipAbductionImg from '../assets/hip_abduction.png';
+import bandPullImg from '../assets/band_pull.png';
+import sitToStandImg from '../assets/sit_to_stand.png';
 import avatarImg from '../assets/avatar.png';
 
 const SELF_PROGRAMS = [
   {
     id: 1,
-    title: 'Seated Knee Extensions',
-    description: 'Improves quadriceps strength and knee joint stability. Crucial for walking and standing up safely.',
-    category: 'Lower Body',
-    difficulty: 'Easy',
-    duration: '15m',
-    image: seatedKneeExtensionsImg,
-    imagePosition: 'center 35%', // เห็นหน้า + ขาที่เหยียดออก
-    difficultyStyle: 'bg-secondary-container text-on-secondary-container',
-    difficultyDot: 'bg-secondary',
-  },
-  {
-    id: 2,
-    title: 'Arm Circles',
-    description: 'Enhances shoulder range of motion and reduces stiffness. Helps with reaching overhead.',
+    title: 'หมุนแขนระดับไหล่',
+    titleEn: 'Shoulder Rotation',
+    description: 'ช่วยฟื้นฟูมุมการเคลื่อนไหวของข้อไหล่ ลดอาการไหล่ติด และเพิ่มความแข็งแรงรอบข้อต่อไหล่',
     category: 'Upper Body',
     difficulty: 'Easy',
     duration: '10m',
-    image: armCirclesImg,
-    imagePosition: 'center 25%', // เห็นหน้า + แขนกางออกข้าง
-    difficultyStyle: 'bg-secondary-container text-on-secondary-container',
-    difficultyDot: 'bg-secondary',
+    image: shoulderRotationImg,
+    imagePosition: 'center 35%',
+  },
+  {
+    id: 2,
+    title: 'ยกแขนเหนือศีรษะ',
+    titleEn: 'Overhead Raise',
+    description: 'เพิ่มความคล่องตัวของข้อไหล่และกล้ามเนื้อหลังช่วงบน ช่วยในการหยิบของในที่สูงและพยุงลำตัว',
+    category: 'Upper Body',
+    difficulty: 'Easy',
+    duration: '10m',
+    image: overheadRaiseImg,
+    imagePosition: 'center 25%',
   },
   {
     id: 3,
-    title: 'Walking Balance',
-    description: 'Improves gait stability and coordination. Reduces the risk of falls in daily life.',
-    category: 'Balance',
-    difficulty: 'Medium',
-    duration: '20m',
-    image: walkingBalanceImg,
-    imagePosition: 'center 20%', // เห็นหน้า + มือจับราว
-    difficultyStyle: 'bg-surface-variant text-on-surface',
-    difficultyDot: 'bg-outline',
-  },
-  {
-    id: 4,
-    title: 'Hip Flexor Stretch',
-    description: 'Stretches the front of the hip and thigh. Reduces stiffness from sitting or post-surgery.',
+    title: 'เหยียดข้อเข่าขณะนั่ง',
+    titleEn: 'Seated Knee Extension',
+    description: 'สร้างความแข็งแรงของกล้ามเนื้อต้นขาด้านหน้า ป้องกันข้อเข่าเสื่อม ช่วยการเดินและพยุงเข่าลุกขึ้น',
     category: 'Lower Body',
     difficulty: 'Easy',
     duration: '12m',
-    image: hipFlexorStretchImg,
-    imagePosition: 'center 75%', // เห็นหน้า + ท่า lunge สะโพก และเห็นเท้าขยับลงมา
-    difficultyStyle: 'bg-secondary-container text-on-secondary-container',
-    difficultyDot: 'bg-secondary',
+    image: seatedKneeExtImg,
+    imagePosition: 'center 35%',
+  },
+  {
+    id: 4,
+    title: 'นอนงอข้อเข่า',
+    titleEn: 'Lying Knee Flexion',
+    description: 'เพิ่มองศาการงอเข่า ยืดกล้ามเนื้อหน้าขา และฟื้นฟูเข่าหลังการผ่าตัดหรือการนั่งนานๆ',
+    category: 'Lower Body',
+    difficulty: 'Easy',
+    duration: '15m',
+    image: lyingKneeFlexImg,
+    imagePosition: 'center 50%',
   },
   {
     id: 5,
-    title: 'Resistance Band Rows',
-    description: 'Strengthens upper back and shoulder muscles using elastic resistance. Improves posture.',
-    category: 'Upper Body',
-    difficulty: 'Hard',
-    duration: '18m',
-    image: resistanceBandRowsImg,
-    imagePosition: 'center 25%', // เห็นหน้า + แขนดึงยางยืด
-    difficultyStyle: 'bg-error-container text-on-error-container',
-    difficultyDot: 'bg-error',
+    title: 'กางสะโพก',
+    titleEn: 'Hip Abduction',
+    description: 'เสริมความแข็งแรงของสะโพกด้านข้าง เพิ่มความมั่นคงในการทรงตัวขณะยืนขาเดียวและลดความเสี่ยงการล้ม',
+    category: 'Hip & Balance',
+    difficulty: 'Medium',
+    duration: '12m',
+    image: hipAbductionImg,
+    imagePosition: 'center 40%',
   },
   {
     id: 6,
-    title: 'Single Leg Stand',
-    description: 'Improves ankle stability and standing balance. Promotes lower body muscular control.',
-    category: 'Balance',
+    title: 'ดึงยางยืดบริหารกล้ามเนื้อ',
+    titleEn: 'Band Pull',
+    description: 'เพิ่มความแข็งแรงของกล้ามเนื้อแขนช่วงล่าง ไหล่ และหลังส่วนบน ช่วยลดอาการปวดเมื่อยออฟฟิศซินโดรม',
+    category: 'Upper Body',
     difficulty: 'Medium',
     duration: '15m',
-    image: singleLegStandImg,
-    imagePosition: 'center 20%', // เห็นหน้า + ขาที่ยกขึ้น
-    difficultyStyle: 'bg-surface-variant text-on-surface',
-    difficultyDot: 'bg-outline',
+    image: bandPullImg,
+    imagePosition: 'center 25%',
   },
+  {
+    id: 7,
+    title: 'ลุก-นั่งจากเก้าอี้',
+    titleEn: 'Sit to Stand',
+    description: 'ฝึกการเคลื่อนไหวพื้นฐานสำคัญของร่างกาย เพิ่มกำลังขารวมและการพยุงตัวในชีวิตประจำวัน',
+    category: 'Functional',
+    difficulty: 'Hard',
+    duration: '15m',
+    image: sitToStandImg,
+    imagePosition: 'center 30%',
+  }
 ];
 
-
-
-const CATEGORIES = ['All', 'Lower Body', 'Upper Body', 'Balance'];
+const CATEGORIES = ['All', 'Upper Body', 'Lower Body', 'Hip & Balance', 'Functional'];
 
 const ProgramCard = ({ program, onClick, index }) => {
   return (
@@ -104,15 +108,15 @@ const ProgramCard = ({ program, onClick, index }) => {
       whileHover={{ y: -4, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)] rounded-[24px] p-4 lg:p-5 flex flex-col sm:flex-row gap-5 items-start sm:items-center cursor-pointer border border-gray-100/80 transition-all hover:shadow-[0_12px_32px_rgba(16,185,129,0.08)] group"
+      className="bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)] rounded-[24px] p-4 lg:p-5 flex flex-col sm:flex-row gap-5 items-start sm:items-center cursor-pointer border border-gray-100/80 transition-all hover:shadow-[0_12px_32px_rgba(16,185,129,0.08)] group font-sans"
     >
       {/* Image / Thumbnail */}
-      <div className="w-full sm:w-[160px] lg:w-[200px] h-[180px] sm:h-[140px] lg:h-[150px] shrink-0 rounded-[20px] overflow-hidden bg-gray-50 relative group-hover:shadow-inner">
+      <div className="w-full sm:w-[160px] lg:w-[200px] h-[180px] sm:h-[140px] lg:h-[150px] shrink-0 rounded-[20px] overflow-hidden bg-slate-900 relative group-hover:shadow-inner">
         <img
           src={program.image}
           alt={program.title}
           style={{ objectPosition: program.imagePosition }}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
         {/* Duration badge */}
@@ -125,7 +129,10 @@ const ProgramCard = ({ program, onClick, index }) => {
       {/* Content */}
       <div className="flex-1 flex flex-col justify-center w-full min-w-0">
         <div className="flex justify-between items-start w-full gap-2">
-          <h2 className="text-lg lg:text-xl font-bold text-gray-900 leading-tight group-hover:text-emerald-600 transition-colors line-clamp-1">{program.title}</h2>
+          <div>
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900 leading-tight group-hover:text-emerald-600 transition-colors line-clamp-1">{program.title}</h2>
+            <span className="text-[11px] font-semibold text-gray-400 mt-0.5 block">{program.titleEn}</span>
+          </div>
           <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-50 transition-colors">
             <ChevronRight size={18} className="text-gray-400 group-hover:text-emerald-500 transition-colors" />
           </div>
@@ -168,27 +175,17 @@ export const Programs = () => {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/profile')
-      .then((res) => res.json())
-      .then((data) => setProfile(data))
-      .catch((err) => console.error('Failed to fetch profile', err));
+    // Load local profile store instead of hitting backend :8000
+    const localProfile = getProfile();
+    setProfile(localProfile);
   }, []);
 
-  const handleModeSwitch = async (mode) => {
+  const handleModeSwitch = (mode) => {
     if (!profile) return;
-    const updated = { ...profile, usage_mode: mode };
+    const updated = saveProfile({ usage_mode: mode });
     setProfile(updated);
-    try {
-      await fetch('http://localhost:8000/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated)
-      });
-      if (mode === 'caregiver') {
-        navigate('/caregiver-programs');
-      }
-    } catch (err) {
-      console.error('Failed to save mode', err);
+    if (mode === 'caregiver') {
+      navigate('/caregiver-programs');
     }
   };
 
@@ -197,24 +194,25 @@ export const Programs = () => {
     let hidden = false;
 
     if (profile) {
-      // Hide hard exercises if pain is high
-      if (profile.pain_scale >= 8 && p.difficulty === 'Hard') {
-        hidden = true;
+      // Phase-based safety filtering
+      if (profile.phase === 'acute') {
+        // In acute phase, hide Hard and Medium active exercises
+        if (p.difficulty === 'Hard' || p.difficulty === 'Medium') hidden = true;
+      } else if (profile.phase === 'sub_acute') {
+        // In sub_acute, hide Hard exercises
+        if (p.difficulty === 'Hard') hidden = true;
+      }
+
+      // Target area filtering
+      if (profile.target_area && profile.target_area !== 'all') {
+        if (profile.target_area === 'shoulder' && p.category !== 'Upper Body') hidden = true;
+        if (profile.target_area === 'knee' && p.category !== 'Lower Body' && p.category !== 'Functional') hidden = true;
+        if (profile.target_area === 'hip' && p.category !== 'Hip & Balance' && p.category !== 'Functional') hidden = true;
       }
       
-      // Recommend easy/medium exercises that avoid limitations
-      const limitLower = profile.limitations?.toLowerCase() || '';
-      const avoidShoulder = limitLower.includes('ไหล่') || limitLower.includes('shoulder');
-      const avoidKnee = limitLower.includes('เข่า') || limitLower.includes('knee');
-
-      if (avoidShoulder && p.category === 'Upper Body') hidden = true;
-      if (avoidKnee && p.title.includes('Knee')) hidden = true;
-      
-      // Simple recommendation logic: if it's not hidden, and matches their general issue
+      // If not hidden, mark as recommended since it passed the safety checks
       if (!hidden) {
-        if (limitLower.includes('เข่า') && p.category === 'Lower Body' && p.difficulty !== 'Hard') recommended = true;
-        else if (limitLower.includes('ไหล่') && p.category === 'Upper Body' && p.difficulty !== 'Hard') recommended = true;
-        else if (profile.pain_scale >= 4 && p.difficulty === 'Easy') recommended = true; // Recommend easy if in pain
+        recommended = true;
       }
     }
     
@@ -225,13 +223,14 @@ export const Programs = () => {
     if (p.hidden) return false;
     const matchQuery =
       p.title.toLowerCase().includes(query.toLowerCase()) ||
+      p.titleEn.toLowerCase().includes(query.toLowerCase()) ||
       p.description.toLowerCase().includes(query.toLowerCase());
     const matchCat = activeCategory === 'All' || p.category === activeCategory;
     return matchQuery && matchCat;
   });
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col font-sans">
       {/* Main Canvas */}
       <main className="flex-1 w-full max-w-5xl mx-auto pt-8 pb-[120px] lg:pt-[48px] px-4 lg:px-8 flex flex-col gap-8">
         
@@ -342,8 +341,28 @@ export const Programs = () => {
           </div>
         </section>
 
+        {/* AI Recommendation Banner */}
+        {profile && profile.phase && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-emerald-50/80 backdrop-blur border border-emerald-200/50 p-4 rounded-[24px] flex gap-3 shadow-sm"
+          >
+            <div className="p-2 bg-emerald-100 rounded-xl text-emerald-600 h-fit">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-emerald-900">AI แนะนำสำหรับคุณ</h3>
+              <p className="text-sm text-emerald-700 mt-0.5">
+                จากอาการของคุณอยู่ในระยะ {profile.phase === 'acute' ? 'เฉียบพลัน' : profile.phase === 'sub_acute' ? 'กึ่งเฉียบพลัน' : 'ฟื้นฟู'} 
+                ระบบได้คัดกรองท่าที่ปลอดภัยและเหมาะสมที่สุดให้แล้ว
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Program List */}
-        <section className="flex flex-col gap-4 mt-2">
+        <section className="flex flex-col gap-4">
           <AnimatePresence mode="popLayout">
             {filtered.map((p, i) => (
               <ProgramCard

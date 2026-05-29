@@ -11,21 +11,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@mediapipe/pose': fileURLToPath(new URL('./src/lib/mediapipe-stub.js', import.meta.url)),
-      '@mediapipe/selfie_segmentation': fileURLToPath(new URL('./src/lib/selfie-segmentation-stub.js', import.meta.url)),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
     port: 3000,
     host: true,
-  },
-  optimizeDeps: {
-    include: [
-      '@tensorflow/tfjs',
-      '@tensorflow/tfjs-backend-webgl',
-      '@tensorflow-models/pose-detection',
-      'long',
-    ],
   },
 })
 
