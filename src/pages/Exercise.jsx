@@ -119,7 +119,6 @@ export const Exercise = () => {
     targetReps,
     fsmState,
     shouldCapture,
-    activeSide,
     isDangerous
   } = usePoseAnalysis(keypoints, exerciseId);
 

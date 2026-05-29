@@ -113,7 +113,6 @@ export const CaregiverExercise = () => {
     targetReps,
     fsmState,
     shouldCapture,
-    activeSide,
     isDangerous
   } = usePoseAnalysis(keypoints, exerciseId);
 

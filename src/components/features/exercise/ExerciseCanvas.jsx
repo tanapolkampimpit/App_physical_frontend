@@ -227,6 +227,7 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady, isDangerous, exerci
 
   useEffect(() => {
     let active = true;
+    const currentVideo = videoRef.current;
 
     // Create adaptive filter set for 33 landmarks
     filterSetRef.current = createLandmarkFilters(33);
@@ -342,8 +343,8 @@ export const ExerciseCanvas = ({ onKeypoints, onCameraReady, isDangerous, exerci
 
     return () => {
       active = false;
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      if (currentVideo?.srcObject) {
+        currentVideo.srcObject.getTracks().forEach(track => track.stop());
       }
       if (cameraRef.current) {
         try {

@@ -227,7 +227,7 @@ export class RepCounterFSM {
         }
       } else {
         // Dynamic guide based on progress percentage
-        let progressPct = 0;
+        let progressPct;
         if (type === 'LESS_THAN') {
           // starts at ~180 (straight), goes down to peakAngle
           progressPct = (180 - currentAngle) / (180 - peakAngle);

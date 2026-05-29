@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { POSE_CONFIGS, RepCounterFSM } from '../lib/repCounterFSM';
 import { getJointAngle } from '../lib/angleCalculation';
 
@@ -11,25 +11,24 @@ import { getJointAngle } from '../lib/angleCalculation';
  * @returns {Object} Analysis results
  */
 export const usePoseAnalysis = (landmarks, exerciseId) => {
-  const fsmRef = useRef(null);
-
-  // Re-instantiate FSM when changing exercises
   const activeExerciseId = Number(exerciseId) || 1;
-  if (!fsmRef.current || fsmRef.current.config.id !== activeExerciseId) {
-    fsmRef.current = new RepCounterFSM(activeExerciseId);
+  const [fsm, setFsm] = useState(() => new RepCounterFSM(activeExerciseId));
+
+  if (fsm.config.id !== activeExerciseId) {
+    setFsm(new RepCounterFSM(activeExerciseId));
   }
 
   return useMemo(() => {
-    const fsm = fsmRef.current;
+    const currentFsm = fsm.config.id === activeExerciseId ? fsm : new RepCounterFSM(activeExerciseId);
 
     // Default return state when pose is loading or undetected
     if (!landmarks || landmarks.length < 33) {
       return {
         feedback: 'ขยับร่างกายให้หันเข้าหากล้องตรงๆ...',
         currentAngle: 0,
-        repCount: fsm.repCount,
-        targetReps: fsm.targetReps,
-        fsmState: fsm.state,
+        repCount: currentFsm.repCount,
+        targetReps: currentFsm.targetReps,
+        fsmState: currentFsm.state,
         shouldCapture: false,
         activeSide: 'none',
         isDangerous: false
@@ -56,7 +55,7 @@ export const usePoseAnalysis = (landmarks, exerciseId) => {
     const rawAngle = getJointAngle(landmarks, activeIndices[0], activeIndices[1], activeIndices[2]);
 
     // Feed angle into finite state machine (FSM)
-    const fsmResult = fsm.update(rawAngle);
+    const fsmResult = currentFsm.update(rawAngle);
 
     // Evaluate biomechanical safety boundaries
     let isDangerous = false;
@@ -75,11 +74,11 @@ export const usePoseAnalysis = (landmarks, exerciseId) => {
       feedback: finalFeedback,
       currentAngle: fsmResult.currentAngle,
       repCount: fsmResult.repCount,
-      targetReps: fsm.targetReps,
+      targetReps: currentFsm.targetReps,
       fsmState: fsmResult.state,
       shouldCapture: fsmResult.shouldCapture,
       activeSide,
       isDangerous
     };
-  }, [landmarks, activeExerciseId]);
+  }, [landmarks, activeExerciseId, fsm]);
 };

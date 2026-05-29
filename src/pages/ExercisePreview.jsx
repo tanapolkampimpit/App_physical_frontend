@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, Repeat, ChevronRight, TriangleAlert, Activity, Star } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';

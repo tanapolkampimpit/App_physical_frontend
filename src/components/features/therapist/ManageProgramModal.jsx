@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Search, Info } from 'lucide-react';
+import { X, Check, Search } from 'lucide-react';
 import { mockPrograms, exerciseInstructions } from '../exercise/exerciseData';
 import { cn } from '../../../lib/utils';
 
